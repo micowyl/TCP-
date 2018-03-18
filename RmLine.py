@@ -30,8 +30,6 @@ class ProxyUi(object):
 
         root = Tk()
         root.title('文本处理 v1.0')
-        root.geometry('500x120')
-        root.resizable(1 ,0)
 
         # ----------------------菜单项部分开始...------------------------ #
         # 创建顶部菜单页
@@ -43,15 +41,13 @@ class ProxyUi(object):
         file_menu.add_command(label='保存日志')
         menu_bar.add_cascade(label='文件', menu=file_menu)
 
-
         frm1 = Frame(root)
-        frm1.pack(fill='x')
 
         # ----------------------服务器参数配置部分开始。。。------------------------ #
         # 创建容器
         container1 = ttk.LabelFrame(frm1, text='路径')
-        container1.pack(fill='both', expand=True)
-        container2= ttk.LabelFrame(frm1, text='字符串内容（删除包含以下字符串的行）')
+        container1.pack(fill='x')
+        container2= ttk.LabelFrame(frm1, text='字符串内容（删除包含以下各行中字符的行）')
         container2.pack(fill='both', expand=True)
 
         # 选择文件
@@ -62,12 +58,11 @@ class ProxyUi(object):
         self.boxInputPath.configure(state='disabled')
         ttk.Button(container1, text='浏览', width=5, command=self.get_path).pack(side='left')
 
-
         # 匹配字符串
-        self.boxInputStr = Entry(container2, borderwidth=1)
-        self.boxInputStr.pack(fill='x', expand=True, side='left')
-        self.boxInputStr.insert(0, 'sn=0 addr=(nil)')
-        ttk.Button(container2, text='开始', width=5, command=self.dispose_file).pack()
+        self.boxInputStr = Text(container2, borderwidth=1, height=2)
+        self.boxInputStr.pack(fill='both', expand=True, side='bottom')
+        self.boxInputStr.insert(END, 'sn=0 addr=(nil)')
+        ttk.Button(frm2, text='开始', width=10, command=self.dispose_file).pack(side='bottom')
 
         root.protocol('WM_DELETE_WINDOW', win_close)
         root.mainloop()
@@ -82,19 +77,35 @@ class ProxyUi(object):
         self.boxInputPath.configure(state='disabled')
 
     def dispose_file(self):
+        def not_empty(s):
+            return s
+
         line_num = 0
-        match_str = self.boxInputStr.get().strip()
-        des_file = open(self.file_Path + '.RmLine', 'a', encoding='gbk')
-        with open(self.file_Path, 'r', encoding='gbk', errors='ignore') as raw_file:
+        is_match = False
+
+        # 将用户输入字符串按换行符分割
+        list_match_str = self.boxInputStr.get('0.0', 'end').split('\n')
+        list_match_str = list(filter(not_empty, list_match_str))
+        print('list_match_str：', list_match_str)
+
+        des_file = open(self.file_Path + '.RmLine', 'w')
+        with open(self.file_Path, 'r', errors='ignore') as raw_file:
             for line in raw_file.readlines():
-                if match_str not in  line:
-                    # with open(self.file_Path + '.RmLine', 'a', encoding='gbk') as des_file:
-                    des_file.write(line)
-                else:
-                    line_num += 1
+                if line == '\n':  # 去掉空行
+                    continue
+                for match_str in list_match_str:
+                    if match_str in  line:
+                        line_num += 1
+                        is_match = True
+                        break
+                    else:
+                        is_match = False
+                if is_match:
+                    continue
+                des_file.write(line)
         des_file.close()
         messagebox.showinfo('处理完成', '已经删除 {} 行包含 {} 字符的行！\n新文件路径{}'
-                            .format(line_num, match_str, self.file_Path + '.RmLine'))
+                            .format(line_num, list_match_str, self.file_Path + '.RmLine'))
 
 if __name__ == '__main__':
     # 创建类实例
@@ -102,6 +113,7 @@ if __name__ == '__main__':
 
     # 弹出UI主界面
     proxy_ui.create_gui()
+
 
 
 
